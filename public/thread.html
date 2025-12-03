@@ -1,0 +1,60 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Venyma — Thread</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Thread view</h1>
+      <div><a href="/">⬅ Back to boards</a></div>
+
+      <section id="threadArea"></section>
+
+      <section class="replyBox">
+        <h3>Post a reply</h3>
+        <form id="postReply">
+          <input id="boardInput" name="board" hidden />
+          <input id="threadInput" name="thread_id" hidden />
+          <textarea name="text" placeholder="Reply text" required></textarea>
+          <input name="delete_password" placeholder="delete password" required />
+          <button>Post reply</button>
+        </form>
+      </section>
+
+    </main>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+      function qs(key){ const u = new URLSearchParams(location.search); return u.get(key); }
+      function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",""":"&quot;","'":"&#39;"}[c])); }
+
+      $(async function(){
+        const board = qs('board') || 'general';
+        const thread_id = qs('thread_id');
+        if(!thread_id) return $('#threadArea').text('No thread specified');
+
+        $('#boardInput').val(board);
+        $('#threadInput').val(thread_id);
+
+        $.getJSON(`/api/threads/${board}`, function(list){
+          const t = list.find(x=>x._id===thread_id);
+          if(!t) return $('#threadArea').text('Thread not found');
+          const head = `<div class="thread head"><div class="text">${escapeHtml(t.text)}</div><div class="hid">ID: <code>${t._id}</code></div></div>`;
+          const replies = t.replies.map(r=>`<div class="reply"><div class="text">${escapeHtml(r.text)}</div><div class="meta">ID: <code>${r._id}</code></div></div>`).join('');
+          $('#threadArea').html(head + '<hr/>' + replies);
+        }).fail(()=>$('#threadArea').text('Failed to load thread'));
+
+        $('#postReply').submit(function(e){
+          e.preventDefault();
+          $.post(`/api/replies/${board}`, $(this).serialize(), function(res){
+            alert('Reply posted');
+            location.reload();
+          }).fail(()=>alert('Reply failed'));
+        });
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,68 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Venyma — Boards</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <main>
+      <h1>Venyma Network — Boards</h1>
+
+      <section class="create">
+        <h2>Create new thread</h2>
+        <form id="createThread">
+          <input id="boardName" name="board" placeholder="board (e.g. general)" required />
+          <textarea name="text" placeholder="Thread text" required></textarea>
+          <input name="delete_password" placeholder="delete password" required />
+          <button>Create thread</button>
+        </form>
+      </section>
+
+      <section class="list">
+        <h2>Recent threads</h2>
+        <div id="threads"></div>
+      </section>
+
+    </main>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+      function loadBoard(board = 'general'){
+        $('#threads').text('Loading...');
+        $.getJSON(`/api/threads/${board}`, function(data){
+          if(!Array.isArray(data)) return $('#threads').text('No threads');
+          const html = data.map(t => `
+            <div class="thread">
+              <div class="hid">ID: <code>${t._id}</code></div>
+              <div class="text">${escapeHtml(t.text)}</div>
+              <div class="meta">Replies: ${t.replies.length} —
+                <a href="/thread.html?board=${encodeURIComponent(board)}&thread_id=${encodeURIComponent(t._id)}">Open</a>
+              </div>
+            </div>
+          `).join('\n');
+          $('#threads').html(html);
+        }).fail(()=>$('#threads').text('Failed to load threads'));
+      }
+
+      function escapeHtml(s){
+        return String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",""":"&quot;","'":"&#39;"}[c]));
+      }
+
+      $(function(){
+        const boardInput = $('#boardName');
+        loadBoard('general');
+
+        $('#createThread').submit(function(e){
+          e.preventDefault();
+          const board = boardInput.val().trim() || 'general';
+          $.post(`/api/threads/${board}`, $(this).serialize(), function(res){
+            alert('Created thread');
+            loadBoard(board);
+          }).fail(err=>alert('Create failed'));
+        });
+      });
+    </script>
+  </body>
+</html>
